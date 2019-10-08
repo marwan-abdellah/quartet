@@ -382,7 +382,7 @@ max_dihedral_angle(const TetMesh& mesh)
 	float maxAngle = 0.0f;
 	for (size_t t = 0; t < mesh.tSize(); ++t) {
         std::vector<float> angles;
-        mesh.getTet(t).dihedralAngles(angles);
+        mesh.getTet(t).computeDihedralAngles(angles);
         for (size_t i = 0; i < angles.size(); ++i) {
 		    if (angles[i] > maxAngle) {
 			    maxAngle = angles[i];
@@ -553,12 +553,12 @@ make_tet_mesh(TetMesh& mesh,
         for (size_t t = 0; t < mesh.tSize(); ++t)
         {
             Tet tet = mesh.getTet(t);
-            float signedVolume = tet.volume();
+            float signedVolume = tet.computeVolume();
             if (signedVolume <= 0.0)
             {
                 std::cerr << "Tet #" << t << " is inverted! " <<
                     "Volume = " << signedVolume << "; " <<
-                    "Aspect = " << tet.aspectRatio() << std::endl <<
+                    "Aspect = " << tet.computeAspectRatio() << std::endl <<
                     "{" << tet[0] << "} {" << tet[1] << "} {" << tet[2] <<
                     "} {" << tet[3] << "}" << std::endl;
             }

@@ -8,9 +8,11 @@
 #include <cstdio>
 #include <cfloat>
 
-//
-// Tet
-//
+
+Tet::Tet()
+{
+    /// EMPTY CONSTRUCTOR
+}
 
 Tet::Tet(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2, const Vec3f& v3)
 {
@@ -20,8 +22,7 @@ Tet::Tet(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2, const Vec3f& v3)
     v[3] = v3;
 }
 
-
-int Tet::orientation(double &sixSignedVolume) const
+int Tet::computeOrientation(double &sixSignedVolume) const
 {
     return orientation3D(v[0][0], v[0][1], v[0][2],
                          v[1][0], v[1][1], v[1][2],
@@ -31,22 +32,22 @@ int Tet::orientation(double &sixSignedVolume) const
 }
 
 
-int Tet::orientation() const
+int Tet::computeOrientation() const
 {
     double sixSignedVolume;
-    return orientation(sixSignedVolume);
+    return computeOrientation(sixSignedVolume);
 }
 
 
-float Tet::volume() const
+float Tet::computeVolume() const
 {
     double sixSignedVolume;
-    orientation(sixSignedVolume);
+    computeOrientation(sixSignedVolume);
     return sixSignedVolume/6.0;
 }
 
 
-float Tet::aspectRatio() const
+float Tet::computeAspectRatio() const
 {
     // Find the two edges with the largest cross product magnitude.
     // ie: max(cross(w,x))
@@ -75,17 +76,17 @@ float Tet::aspectRatio() const
     // We also need six times the volume of the tet, which we can
     // get from the orientation primitive.
     double sixSignedVolume;
-    orientation(sixSignedVolume);
+    computeOrientation(sixSignedVolume);
 
     // Last thing we need is the maximum edge length.
-    float maxEdge = maxEdgeLength();
+    float maxEdge = computeMaxEdgeLength();
 
     // aspectRatio = (l_max * max(cross(w,x)) / 6*V
     return (maxEdge * maxCrossMag) / sixSignedVolume;
 }
 
 
-void Tet::dihedralAngles(std::vector<float>& angles) const
+void Tet::computeDihedralAngles(std::vector<float>& angles) const
 {
     angles.clear();
     angles.resize(6);
@@ -139,7 +140,7 @@ void Tet::dihedralAngles(std::vector<float>& angles) const
 }
 
 
-void Tet::faceAngles(std::vector<float>& angles) const
+void Tet::computeFaceAngles(std::vector<float>& angles) const
 {
     angles.clear();
     angles.resize(12);
@@ -174,7 +175,7 @@ void Tet::faceAngles(std::vector<float>& angles) const
 }
 
 
-float Tet::maxEdgeLength() const
+float Tet::computeMaxEdgeLength() const
 {
     float maxLength2 = 0.0;
     for (int i = 0; i < 3; ++i)
@@ -534,7 +535,7 @@ bool TetMesh::writeInfoToFile(const char* filename) const
     {
         Tet currTet = getTet(tIdx);
         std::vector<float> currAngles;
-        currTet.dihedralAngles(currAngles);
+        currTet.computeDihedralAngles(currAngles);
         for (size_t i = 0; i < currAngles.size(); ++i)
         {
             dihedralAngles.push_back(currAngles[i] * 180.0 / M_PI);
@@ -571,7 +572,7 @@ bool TetMesh::writeInfoToFile(const char* filename) const
     for (size_t tIdx = 0; tIdx < t.size(); ++tIdx)
     {
         Tet currTet = getTet(tIdx);
-        float currVolume = currTet.volume();
+        float currVolume = currTet.computeVolume();
         if (currVolume < minVolume) minVolume = currVolume;
         if (currVolume > maxVolume) maxVolume = currVolume;
     }
@@ -591,7 +592,7 @@ bool TetMesh::writeInfoToFile(const char* filename) const
     for (size_t tIdx = 0; tIdx < t.size(); ++tIdx)
     {
         Tet currTet = getTet(tIdx);
-        aspectRatios.push_back(currTet.aspectRatio());    
+        aspectRatios.push_back(currTet.computeAspectRatio());    
     }
 
     // Process aspect ratios, generating histogram and min/max.

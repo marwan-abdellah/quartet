@@ -9,7 +9,7 @@ static const float OPT_DIHEDRAL = asin(2.0*sqrt(2.0)/3.0);
 float
 max_dihedral_angle(const Tet& tet)
 {
-    int orient = tet.orientation();
+    int orient = tet.computeOrientation();
 
     if (orient == 0)
     {
@@ -17,7 +17,7 @@ max_dihedral_angle(const Tet& tet)
     }
 
     std::vector<float> angles;
-    tet.dihedralAngles(angles);
+    tet.computeDihedralAngles(angles);
     float maxAngle = angles[0];
     for (size_t i = 1; i < angles.size(); ++i)
     {
@@ -44,14 +44,14 @@ max_dihedral_angle(const Tet& tet)
 float
 min_sine_dihedral_angle(const Tet& tet)
 {
-    int orient = tet.orientation();
+    int orient = tet.computeOrientation();
     if (orient == 0)
     {
         return 0.0;
     }
 
     std::vector<float> angles;
-    tet.dihedralAngles(angles);
+    tet.computeDihedralAngles(angles);
     float minSin = sin(angles[0]);
     for (size_t i = 1; i < angles.size(); ++i)
     {
@@ -74,14 +74,14 @@ min_sine_dihedral_angle(const Tet& tet)
 float
 min_face_angle(const Tet& tet)
 {
-    int orient = tet.orientation();
+    int orient = tet.computeOrientation();
     if (orient == 0)
     {
         return 0.0;
     }
 
     std::vector<float> angles;
-    tet.faceAngles(angles);
+    tet.computeFaceAngles(angles);
     float minAngle = angles[0];
     for (size_t i = 1; i < angles.size(); ++i)
     {
@@ -109,7 +109,7 @@ aspect_ratio(const Tet& tet)
 {
     // Want to minimize aspect ratio, so invert.
     // Normalize by sqrt(2).
-    return SQRT2 / tet.aspectRatio();
+    return SQRT2 / tet.computeAspectRatio();
 }
 
 

@@ -45,7 +45,7 @@ bool inverts_incident_tets(int vIndex,
         }
 
         // Check orientation of tet.
-        int o = tet.orientation();
+        int o = tet.computeOrientation();
         if (o <= 0)
         {
             // Snapping the vertex inverts this tet!

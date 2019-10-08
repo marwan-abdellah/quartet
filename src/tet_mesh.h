@@ -4,45 +4,146 @@
 #include "vec.h"
 #include <vector>
 
-//
-// Data structure representing a single tetrahedron.
-//
+/**
+ * @brief The Tet struct
+ * Tetrahedron
+ */
 struct Tet
 {
-    Vec3f v[4]; // The four vertices of the tetrahedron.
+    /**
+     * @brief Tet
+     */
+    Tet();
 
-    Tet() { }
+    /**
+     * @brief Tet
+     * @param v0
+     * @param v1
+     * @param v2
+     * @param v3
+     */
     Tet(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2, const Vec3f& v3);
 
-    Vec3f& operator[] (int i) { return v[i]; }
-    const Vec3f& operator[] (int i) const { return v[i]; }
+    /**
+     * @brief computeOrientation
+     * @param sixSignedVolume
+     * @return
+     */
+    int computeOrientation(double &sixSignedVolume) const;
 
-    int orientation(double &sixSignedVolume) const;
-    int orientation() const;
+    /**
+     * @brief computeOrientation
+     * @return
+     */
+    int computeOrientation() const;
 
-    float volume() const;
-    float aspectRatio() const;
+    /**
+     * @brief computeVolume
+     * @return
+     */
+    float computeVolume() const;
 
-    void dihedralAngles(std::vector<float>& angles) const;
-    void faceAngles(std::vector<float>& angles) const;
+    /**
+     * @brief computeAspectRatio
+     * @return
+     */
+    float computeAspectRatio() const;
 
-    float maxEdgeLength() const;
+    /**
+     * @brief computeDihedralAngles
+     * @param angles
+     */
+    void computeDihedralAngles(std::vector<float>& angles) const;
+
+    /**
+     * @brief computeFaceAngles
+     * @param angles
+     */
+    void computeFaceAngles(std::vector<float>& angles) const;
+
+    /**
+     * @brief computeMaxEdgeLength
+     * @return
+     */
+    float computeMaxEdgeLength() const;
+
+public:
+
+    /**
+     * @brief operator []
+     * @param i
+     * @return
+     */
+    Vec3f& operator[] (int i)
+    {
+        return v[i];
+    }
+
+    /**
+     * @brief operator []
+     * @param i
+     * @return
+     */
+    const Vec3f& operator[] (int i) const
+    {
+        return v[i];
+    }
+
+public:
+
+    /**
+     * @brief v
+     * The four vertices of the tetrahedron.
+     */
+    Vec3f v[4];
 };
 
-
-//
-// Data structure representing a tetrahedral mesh.
-//
+/**
+ * @brief The TetMesh struct
+ * Data structure representing a tetrahedral mesh.
+ */
 struct TetMesh
 {
-    // Default constructor
-    TetMesh() : dirty(false) {}
-    // Copy constructor
-    TetMesh(const TetMesh& mesh) : v(mesh.v), t(mesh.t), dirty(true) {}
-    // Construct from vertices and tet indices
+public:
+
+    /**
+     * @brief TetMesh
+     * Default constructor
+     */
+    TetMesh()
+        : dirty(false)
+    {
+        /// EMPTY CONSTRUCTOR
+    }
+
+    /**
+     * @brief TetMesh
+     * Copy constructor
+     * @param mesh
+     * Input tetrahedral mesh.
+     */
+    TetMesh(const TetMesh& mesh)
+        : v(mesh.v)
+        , t(mesh.t)
+        , dirty(true)
+    {
+        /// EMPTY CONSTRUCTOR
+    }
+
+    /**
+     * @brief TetMesh
+     * Construct from vertices and tet indices.
+     * @param verts
+     * @param tets
+     */
     TetMesh(const std::vector<Vec3f>& verts, 
-            const std::vector<Vec4i>& tets) :
-        v(verts), t(tets), dirty(true) {}
+            const std::vector<Vec4i>& tets)
+        : v(verts)
+        , t(tets)
+        , dirty(true)
+    {
+         /// EMPTY CONSTRUCTOR
+    }
 
     // Returns the position of the vertex stored at index i.
     Vec3f& V(int i) { return v[i]; }
