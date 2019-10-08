@@ -420,6 +420,84 @@ void TetMesh::getBoundary(std::vector<Vec3f>& boundary_verts,
     }
 }
 
+bool TetMesh::writeNodeFile(const char* filename) const
+{
+    std::string fileName(filename);
+    fileName += ".node";
+    FILE *out=std::fopen(fileName.c_str(), "w");
+    if (!out) return false;
+
+    fprintf(out, "# Node count, 3 dim, no attribute, no boundary marker\n");
+    fprintf(out, "%d 3 0 0\n", (int)v.size());
+    for (size_t i=0; i<v.size(); ++i)
+        fprintf(out, "%d %.7g %.7g %.7g\n",
+                i, v[i][0], v[i][1], v[i][2]);
+    std::fclose(out);
+    return true;
+}
+
+bool TetMesh::writeEleFile(const char* filename) const
+{
+    std::string fileName(filename);
+    fileName += ".ele";
+    FILE *out=std::fopen(fileName.c_str(), "w");
+    if (!out) return false;
+
+    fprintf(out, "%d 4 0\n", (int)t.size());
+    for (size_t tet=0; tet<t.size(); ++tet)
+        fprintf(out, "%zu %d %d %d %d\n",
+                tet, t[tet][0], t[tet][1], t[tet][2], t[tet][3]);
+    std::fclose(out);
+    return true;
+}
+
+bool TetMesh::writeFaceFile(const char* filename) const
+{
+//    ntets = tetrahedrons->items - hullsize;
+//    faces = (ntets * 4l + hullsize) / 2l;
+
+    std::string fileName(filename);
+    fileName += ".face";
+    FILE *out=std::fopen(fileName.c_str(), "w");
+    if (!out) return false;
+
+    fprintf(out, "%d 1\n", (int)t.size());
+    for (size_t tet=0; tet<t.size(); ++tet)
+        fprintf(out, "%zu %d %d %d %d\n",
+                tet, t[tet][0], t[tet][1], t[tet][2], t[tet][3]);
+    std::fclose(out);
+    return true;
+}
+
+
+bool TetMesh::writeToGMshFile(const char* filename) const
+{
+
+    std::string fileName(filename);
+    fileName += ".msh";
+
+    FILE *out=std::fopen(fileName.c_str(), "w");
+    if (!out) return false;
+
+    fprintf(out, "$MeshFormat\n");
+    fprintf(out, "2.2 0 8\n");
+    fprintf(out, "$EndMeshFormat\n");
+
+    fprintf(out, "$Nodes\n");
+    fprintf(out, "%d\n", (int)v.size());
+    for (size_t i=0; i<v.size(); ++i)
+        fprintf(out, "%zu %.7g %.7g %.7g\n",i + 1, v[i][0], v[i][1], v[i][2]);
+    fprintf(out, "$EndNodes\n");
+
+    fprintf(out, "$Elements\n");
+     fprintf(out, "%d\n", (int)t.size());
+    for (size_t tet=0; tet<t.size(); ++tet)
+        fprintf(out, "%zu 4 2 0 1 %d %d %d %d\n",
+                tet + 1, t[tet][0] + 1, t[tet][1] + 1, t[tet][2] + 1, t[tet][3] + 1);
+    fprintf(out, "$EndElements\n");
+    std::fclose(out);
+    return true;
+}
 
 bool TetMesh::writeToFile(const char* filename) const
 {
@@ -427,15 +505,14 @@ bool TetMesh::writeToFile(const char* filename) const
     if (!out) return false;
     fprintf(out, "tet %d %d\n", (int)v.size(), (int)t.size());
     for (size_t i=0; i<v.size(); ++i)
-        fprintf(out, "%.7g %.7g %.7g\n", 
+        fprintf(out, "%.7g %.7g %.7g\n",
                 v[i][0], v[i][1], v[i][2]);
     for (size_t tet=0; tet<t.size(); ++tet)
-        fprintf(out, "%d %d %d %d\n", 
+        fprintf(out, "%d %d %d %d\n",
                 t[tet][0], t[tet][1], t[tet][2], t[tet][3]);
     std::fclose(out);
     return true;
 }
-
 
 bool TetMesh::writeInfoToFile(const char* filename) const
 {

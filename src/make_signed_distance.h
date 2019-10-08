@@ -13,7 +13,7 @@
 // size and grid dimensions.  
 // Its values will be set up with the signed distance field.
 void
-make_signed_distance(const std::vector<Vec3i> &tri,
+calculateSignedDistanceFunction(const std::vector<Vec3i> &tri,
                      const std::vector<Vec3f> &x,
                      SDF &sdf);
 

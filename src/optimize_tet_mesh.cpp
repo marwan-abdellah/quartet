@@ -52,7 +52,7 @@ optimize_vertex(int vertex,
     } else if (isBoundary) {
         // Generate random perturbation points on tangent plane, in
         // a square of side length dx, then projected onto isosurface
-        Vec3f normal = sdf.normal(mesh.V(vertex));
+        Vec3f normal = sdf.computeNormal(mesh.V(vertex));
         if (mag2(normal) == 0.0)
             normal = Vec3f(0.0, 1.0, 0.0); // Default to y-axis if no normal.
         Vec3f u(1,0,0);

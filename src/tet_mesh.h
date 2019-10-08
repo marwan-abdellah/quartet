@@ -101,6 +101,12 @@ struct TetMesh
     // Write this TetMesh to file with the given name.
     // The output file will be of the .TET format.
     bool writeToFile(const char* filename) const;
+    bool writeNodeFile(const char* filename) const;
+    bool writeEdgeFile(const char* filename) const;
+    bool writeEleFile(const char* filename) const;
+    bool writeFaceFile(const char* filename) const;
+    bool writeSmeshFile(const char* filename) const;
+    bool writeToGMshFile(const char* filename) const;
 
     // Compute information about this TetMesh (dihedral angles, tet volumes,
     // etc.) and write it to the file with the given name.

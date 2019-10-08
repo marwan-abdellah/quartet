@@ -4,21 +4,22 @@
 SDF::SDF(const Vec3f &origin_,
          const float dx_,
          int ni, int nj, int nk)
-    : origin(origin_), dx(dx_), over_dx(1.0f/dx_)
+    : origin(origin_)
+    , dx(dx_)
+    , over_dx(1.f / dx_)
 {
     assert(ni >= 2 && nj >= 2 && nk >= 2);
 
     // Initialize phi to be upper bound on distance.
-    phi.assign(ni, nj, nk, (ni+nj+nk)*dx);
+    phi.assign(ni, nj, nk, (ni + nj + nk) * dx);
 }
 
 
-float
-SDF::operator()(const Vec3f& x) const
+float SDF::operator()(const Vec3f& p) const
 {
-    float fi = (x[0] - origin[0])*over_dx,
-          fj = (x[1] - origin[1])*over_dx,
-          fk = (x[2] - origin[2])*over_dx;
+    float fi = (p[0] - origin[0])*over_dx,
+          fj = (p[1] - origin[1])*over_dx,
+          fk = (p[2] - origin[2])*over_dx;
 
     float u = fi - std::floor(fi),
           v = fj - std::floor(fj),
@@ -40,11 +41,11 @@ SDF::operator()(const Vec3f& x) const
 
 
 Vec3f
-SDF::gradient(const Vec3f& x) const
+SDF::computeGradient(const Vec3f& p) const
 {
-    float fi = (x[0] - origin[0])*over_dx,
-          fj = (x[1] - origin[1])*over_dx,
-          fk = (x[2] - origin[2])*over_dx;
+    float fi = (p[0] - origin[0])*over_dx,
+          fj = (p[1] - origin[1])*over_dx,
+          fk = (p[2] - origin[2])*over_dx;
 
     float u = fi - std::floor(fi),
           v = fj - std::floor(fj),
@@ -79,35 +80,35 @@ SDF::gradient(const Vec3f& x) const
 
 
 Vec3f
-SDF::normal(const Vec3f& x) const
+SDF::computeNormal(const Vec3f& p) const
 {
-    Vec3f g = gradient(x);
+    Vec3f g = computeGradient(p);
     return g / (mag(g) + 1e-30); // Avoid divide-by-zero
 }
 
 
 Vec3f
-SDF::projectToIsosurface(const Vec3f& x) const
+SDF::projectToIsosurface(const Vec3f& p) const
 {
     float s0 = 0, // zero'th step
-          d0 = (*this)(x); // zero'th value
+          d0 = (*this)(p); // zero'th value
     if (d0 == 0)
-        return x; // Already on the isosurface.
+        return p; // Already on the isosurface.
 
-    Vec3f g = gradient(x); // Search direction
+    Vec3f g = computeGradient(p); // Search direction
     float g2 = mag2(g);
     if (g2 == 0)
-        return x; // Give up if we're stuck.
+        return p; // Give up if we're stuck.
 
     float tol = 1e-3*std::fabs(d0);
 
     float s = clamp(-d0/g2, -dx, dx); // first step
-    float d = (*this)(x+s*g); // first value
+    float d = (*this)(p+s*g); // first value
 
     // Search outward until a sign change is found
     for (int steps = 0; steps < 5; ++steps) {
         if (std::fabs(d) <= tol) // converged?
-            return x+s*g;
+            return p+s*g;
         if (d0 < 0 && d > 0) // found sign change?
             goto refine_projection;
         if (d0 > 0 && d < 0) // found sign change?
@@ -116,27 +117,27 @@ SDF::projectToIsosurface(const Vec3f& x) const
         d0 = d;
         s0 = s;
         s *= 1.25; // expand outwards a bit
-        d = (*this)(x+s*g);
+        d = (*this)(p+s*g);
     }
     // If we make it here, we failed to find a sign change...
     if (std::fabs(d0) < std::fabs(d))
-        return x;
+        return p;
     else
-        return x+s*g;
+        return p+s*g;
 
 refine_projection:
     // Secant guess at step size
     s = (d*s0 - d0*s) / (d-d0);
 #ifndef NDEBUG
-    float d_new = (*this)(x+s*g);
+    float d_new = (*this)(p+s*g);
     if (std::fabs(d_new) > 100.0*tol && tol > 1e-5) {
         std::cerr << "projectToIsosurface failed? sdf=" << d_new
                   << ", tol=" << tol << ", ratio=" 
                   << std::fabs(d_new)/tol << std::endl
-                  << "x={" << x << "}, gradient={" << g << "}" << std::endl;
+                  << "x={" << p << "}, gradient={" << g << "}" << std::endl;
     }
 #endif
-    return x+s*g;
+    return p+s*g;
 }
 
 

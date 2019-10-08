@@ -192,7 +192,7 @@ main(int argc,
 	
     SDF sdf(origin, dx, ni, nj, nk); // Initialize signed distance field.
     std::printf("making %dx%dx%d level set\n", ni, nj, nk);
-    make_signed_distance(surf_tri, surf_x, sdf);
+    calculateSignedDistanceFunction(surf_tri, surf_x, sdf);
 	
 	
     // Then the tet mesh
@@ -239,9 +239,17 @@ main(int argc,
     // Write it out
     std::printf("Writing mesh to file: %s\n", argv[3]);
     bool result = mesh.writeToFile(argv[3]);
+
     if (!result)
     {
         std::printf("ERROR: Failed to write mesh to file.\n");
+    }
+    std::printf("Writing gmesh to file: %s\n", argv[3]);
+    result = mesh.writeToGMshFile(argv[3]);
+
+    if (!result)
+    {
+        std::printf("ERROR: Failed to write gmesh to file.\n");
     }
 
     // Strip off file extension for creating other files.
