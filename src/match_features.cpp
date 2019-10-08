@@ -29,7 +29,7 @@ bool inverts_incident_tets(int vIndex,
         // Replace any vertices that have been moved.
         for (int u = 0; u < 4; ++u)
         {
-            int v = mesh.T(t)[u];
+            int v = mesh.getTets(t)[u];
             if (v == vIndex)
             {
                 tet[u] = newPos;
@@ -148,11 +148,11 @@ boundary_edge_search(int v1, int v2,
 
     // Add the starting search node to the search front.
     SearchNode startNode(v1, 0.0f);
-    assert(dist2(feature.projectToFeature(mesh.V(v1)), mesh.V(v1)) == 0.0f);
-    assert(dist2(feature.projectToFeature(mesh.V(v2)), mesh.V(v2)) == 0.0f);
+    assert(dist2(feature.projectToFeature(mesh.getVertices(v1)), mesh.getVertices(v1)) == 0.0f);
+    assert(dist2(feature.projectToFeature(mesh.getVertices(v2)), mesh.getVertices(v2)) == 0.0f);
     weight[v1] = 0.0f;
-    snappedPos[v1] = mesh.V(v1);
-    snappedPos[v2] = mesh.V(v2);
+    snappedPos[v1] = mesh.getVertices(v1);
+    snappedPos[v2] = mesh.getVertices(v2);
     minPathCost[v1] = 0.0f;
     searchFront.insert(startNode);
 
@@ -222,8 +222,8 @@ boundary_edge_search(int v1, int v2,
                 // of v and the closest point to v on the feature,
                 // plus a small constant factor to encourage the algorithm to 
                 // choose paths with fewer edges.
-                p = feature.projectToFeature(mesh.V(v.vertex));
-                w = dist2(p, mesh.V(v.vertex));
+                p = feature.projectToFeature(mesh.getVertices(v.vertex));
+                w = dist2(p, mesh.getVertices(v.vertex));
                 w += 1e-3; // Discourage unneccesarily long paths.
                 weight[v.vertex] = w;
                 snappedPos[v.vertex] = p;
@@ -323,7 +323,7 @@ find_closest_vert(const Vec3f& point,
     for (size_t b = 0; b < boundaryVerts.size(); ++b)
     {
         // Find the closest boundary vertex to the given point.
-        float currDist2 = dist2(point, mesh.V(boundaryVerts[b]));
+        float currDist2 = dist2(point, mesh.getVertices(boundaryVerts[b]));
         if (currDist2 < distanceSquared)
         {
             // Check that this vertex has not already been used.
@@ -484,7 +484,7 @@ match_feature_endpoints(TetMesh& mesh,
         }
 
         // Do the snap.
-        mesh.V(vert) = endpoints[currEndpoint];
+        mesh.getVertices(vert) = endpoints[currEndpoint];
         endpointVertexMap[endpoints[currEndpoint]] = vert;
         featureEndpoints.push_back(vert);
         snappedVertMap[vert] = currEndpoint;
@@ -593,8 +593,8 @@ match_features(TetMesh& mesh,
             {
                 // Ideally this shouldn't happen, but just in case:
                 std::cout << "ERROR: No valid path between feature endpoints:" 
-                    << std::endl << "[(" << mesh.V(e1) << "), ("  
-                                     << mesh.V(e2) << ")]" << std::endl;
+                    << std::endl << "[(" << mesh.getVertices(e1) << "), ("  
+                                     << mesh.getVertices(e2) << ")]" << std::endl;
                 featurePaths[f].clear();
             }
             else
@@ -667,7 +667,7 @@ match_features(TetMesh& mesh,
             }
 
             // Project vertex onto the feature.
-            mesh.V(v) = newPos;
+            mesh.getVertices(v) = newPos;
 
             // Record which vertices were snapped to this feature.
             vertexFeatureMap[v] = curr;
@@ -809,8 +809,8 @@ match_features(TetMesh& mesh,
                             std::cout << "(tets inverted) ";
                         }
                         std::cout << "with endpoints:" << std::endl
-                            << "[(" << mesh.V(featurePaths[path].front()) 
-                            << "), (" << mesh.V(featurePaths[path].back()) 
+                            << "[(" << mesh.getVertices(featurePaths[path].front()) 
+                            << "), (" << mesh.getVertices(featurePaths[path].back()) 
                             << ")]" << std::endl;
                     }
                 }

@@ -38,21 +38,21 @@ optimize_vertex(int vertex,
         // then projecting them all onto the feature.
         Feature feature;
         featureSet.getFeature(featureIndex, feature);
-        Vec3f tangent = feature.getTangent(mesh.V(vertex));
+        Vec3f tangent = feature.getTangent(mesh.getVertices(vertex));
         normalize(tangent);
         for (int i = 0; i < NUM_RAND_PERTURBATIONS; ++i) {
-            testx.push_back(feature.projectToFeature(mesh.V(vertex) +
+            testx.push_back(feature.projectToFeature(mesh.getVertices(vertex) +
                                                      randf(P)*tangent));
         }
         // and include original point and extreme points along feature.
-        testx.push_back(feature.projectToFeature(mesh.V(vertex)));
-        testx.push_back(feature.projectToFeature(mesh.V(vertex)-P*tangent));
-        testx.push_back(feature.projectToFeature(mesh.V(vertex)+P*tangent));
+        testx.push_back(feature.projectToFeature(mesh.getVertices(vertex)));
+        testx.push_back(feature.projectToFeature(mesh.getVertices(vertex)-P*tangent));
+        testx.push_back(feature.projectToFeature(mesh.getVertices(vertex)+P*tangent));
 
     } else if (isBoundary) {
         // Generate random perturbation points on tangent plane, in
         // a square of side length dx, then projected onto isosurface
-        Vec3f normal = sdf.computeNormal(mesh.V(vertex));
+        Vec3f normal = sdf.computeNormal(mesh.getVertices(vertex));
         if (mag2(normal) == 0.0)
             normal = Vec3f(0.0, 1.0, 0.0); // Default to y-axis if no normal.
         Vec3f u(1,0,0);
@@ -63,31 +63,31 @@ optimize_vertex(int vertex,
         u /= mag(u);
         Vec3f v = cross(normal, u);
         for (int i = 0; i < NUM_RAND_PERTURBATIONS; ++i) {
-            Vec3f t = mesh.V(vertex) + randf(P)*u + randf(P)*v;
+            Vec3f t = mesh.getVertices(vertex) + randf(P)*u + randf(P)*v;
             testx.push_back(sdf.projectToIsosurface(t));
         }
         // also original point and projected corners of unit square
-        testx.push_back(sdf.projectToIsosurface(mesh.V(vertex)));
-        testx.push_back(sdf.projectToIsosurface(mesh.V(vertex)-P*u-P*v));
-        testx.push_back(sdf.projectToIsosurface(mesh.V(vertex)+P*u-P*v));
-        testx.push_back(sdf.projectToIsosurface(mesh.V(vertex)-P*u+P*v));
-        testx.push_back(sdf.projectToIsosurface(mesh.V(vertex)+P*u+P*v));
+        testx.push_back(sdf.projectToIsosurface(mesh.getVertices(vertex)));
+        testx.push_back(sdf.projectToIsosurface(mesh.getVertices(vertex)-P*u-P*v));
+        testx.push_back(sdf.projectToIsosurface(mesh.getVertices(vertex)+P*u-P*v));
+        testx.push_back(sdf.projectToIsosurface(mesh.getVertices(vertex)-P*u+P*v));
+        testx.push_back(sdf.projectToIsosurface(mesh.getVertices(vertex)+P*u+P*v));
 
     } else { // interior vertex
         // Generate random perturbation points within cube
         for (int i = 0; i < NUM_RAND_PERTURBATIONS; ++i) {
-            testx.push_back(mesh.V(vertex)+Vec3f(randf(P),randf(P),randf(P)));
+            testx.push_back(mesh.getVertices(vertex)+Vec3f(randf(P),randf(P),randf(P)));
         }
         // and include original point and corners of cube
-        testx.push_back(mesh.V(vertex));
-        testx.push_back(mesh.V(vertex)+Vec3f(-P,-P,-P));
-        testx.push_back(mesh.V(vertex)+Vec3f(+P,-P,-P));
-        testx.push_back(mesh.V(vertex)+Vec3f(-P,+P,-P));
-        testx.push_back(mesh.V(vertex)+Vec3f(+P,+P,-P));
-        testx.push_back(mesh.V(vertex)+Vec3f(-P,-P,+P));
-        testx.push_back(mesh.V(vertex)+Vec3f(+P,-P,+P));
-        testx.push_back(mesh.V(vertex)+Vec3f(-P,+P,+P));
-        testx.push_back(mesh.V(vertex)+Vec3f(+P,+P,+P));
+        testx.push_back(mesh.getVertices(vertex));
+        testx.push_back(mesh.getVertices(vertex)+Vec3f(-P,-P,-P));
+        testx.push_back(mesh.getVertices(vertex)+Vec3f(+P,-P,-P));
+        testx.push_back(mesh.getVertices(vertex)+Vec3f(-P,+P,-P));
+        testx.push_back(mesh.getVertices(vertex)+Vec3f(+P,+P,-P));
+        testx.push_back(mesh.getVertices(vertex)+Vec3f(-P,-P,+P));
+        testx.push_back(mesh.getVertices(vertex)+Vec3f(+P,-P,+P));
+        testx.push_back(mesh.getVertices(vertex)+Vec3f(-P,+P,+P));
+        testx.push_back(mesh.getVertices(vertex)+Vec3f(+P,+P,+P));
     }
 
     // Find incident tetrahedra, and the indices that refer to the 
@@ -97,7 +97,7 @@ optimize_vertex(int vertex,
     std::vector<int> incidentVertexIndex(incidentTets.size(), -1);
     for (size_t i = 0; i < incidentTets.size(); ++i) {
         for (int v = 0; v < 4; ++v) {
-            if (mesh.V(vertex) == incidentTets[i][v]) {
+            if (mesh.getVertices(vertex) == incidentTets[i][v]) {
                 incidentVertexIndex[i] = v;
                 continue;
             }
@@ -140,8 +140,8 @@ optimize_vertex(int vertex,
 		} else if (perturbQuality == bestQuality && 
 					bestPerturb >= 0) {
 			// To break a tie, take the smallest perturbation.
-			if (dist2(mesh.V(vertex), testx[p]) < 
-                    dist2(mesh.V(vertex), testx[bestPerturb])) {
+			if (dist2(mesh.getVertices(vertex), testx[p]) < 
+                    dist2(mesh.getVertices(vertex), testx[bestPerturb])) {
 				bestQuality = perturbQuality;
 				bestPerturb = p;
 			}
@@ -151,7 +151,7 @@ optimize_vertex(int vertex,
 	// Pick the perturbation that yields the best quality (lowest value)
 	// and apply it to the vertex.
     if (bestPerturb >= 0) {
-	    mesh.V(vertex) = testx[bestPerturb];
+	    mesh.getVertices(vertex) = testx[bestPerturb];
 	    
         // Return the quality metric for the new vertex.
 	    return bestQuality;
@@ -163,7 +163,7 @@ optimize_vertex(int vertex,
     for (size_t t = 0; t < incidentTets.size(); ++t) {
         
         // Move the vertex back to its original location in the tetrahedron.
-        incidentTets[t][incidentVertexIndex[t]] = mesh.V(vertex);
+        incidentTets[t][incidentVertexIndex[t]] = mesh.getVertices(vertex);
         
         float tetQuality = compute_tet_quality(incidentTets[t]);
         
@@ -184,9 +184,9 @@ optimize_tet_mesh(TetMesh& mesh,
                   const std::vector<int>& feature_endpoints,
                   const std::map<int, int>& vertex_feature_map)
 {
-	std::vector<bool> isBoundary(mesh.vSize(), false);
-	std::vector<bool> isFeatureEndpoint(mesh.vSize(), false);
-    std::vector<int> vertexFeatures(mesh.vSize(), -1);
+	std::vector<bool> isBoundary(mesh.getNumberVertices(), false);
+	std::vector<bool> isFeatureEndpoint(mesh.getNumberVertices(), false);
+    std::vector<int> vertexFeatures(mesh.getNumberVertices(), -1);
 
     for (size_t b = 0; b < boundary_verts.size(); ++b) {
         assert(boundary_verts[b] < (int)isBoundary.size());
@@ -214,7 +214,7 @@ optimize_tet_mesh(TetMesh& mesh,
         float currTetQuality = FLT_MAX;
 
         // First loop over interior vertices
-        for (size_t v = 0; v < mesh.vSize(); ++v) {
+        for (size_t v = 0; v < mesh.getNumberVertices(); ++v) {
             if (!isBoundary[v] && !isFeatureEndpoint[v]
                 && vertexFeatures[v] == -1) {
                 float quality = optimize_vertex(v, mesh, sdf, featureSet,
@@ -226,7 +226,7 @@ optimize_tet_mesh(TetMesh& mesh,
         }
 
         // Then loop over boundary vertices
-        for (size_t v = 0; v < mesh.vSize(); ++v) {
+        for (size_t v = 0; v < mesh.getNumberVertices(); ++v) {
             if (isBoundary[v] && !isFeatureEndpoint[v] 
                 && vertexFeatures[v] == -1) {
                 float quality = optimize_vertex(v, mesh, sdf, featureSet,
@@ -238,7 +238,7 @@ optimize_tet_mesh(TetMesh& mesh,
         }
 
         // Then loop over feature vertices.
-        for (size_t v = 0; v < mesh.vSize(); ++v) {
+        for (size_t v = 0; v < mesh.getNumberVertices(); ++v) {
             if (vertexFeatures[v] != -1 && !isFeatureEndpoint[v]) {
                 float quality = optimize_vertex(v, mesh, sdf, featureSet,
                                                 false, vertexFeatures[v]);

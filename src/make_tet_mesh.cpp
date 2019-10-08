@@ -133,15 +133,15 @@ cut_lattice(const SDF& sdf,
                     Vec3i vertex=lattice_node[lattice_tet[t][u]]+Vec3i(i,j,k);
                     std::map<Vec3i,int>::iterator p = lattice_map.find(vertex);
                     if (p == lattice_map.end()) {
-                        actual_tet[u] = mesh.vSize();
+                        actual_tet[u] = mesh.getNumberVertices();
                         lattice_map[vertex] = actual_tet[u];
-                        mesh.verts().push_back(sdf.origin+sdf.dx*Vec3f(vertex));
+                        mesh.getListVertices().push_back(sdf.origin+sdf.dx*Vec3f(vertex));
                         vphi.push_back(sdf.phi(vertex[0],vertex[1],vertex[2]));
                     } else {
                         actual_tet[u]=p->second;
                     }
                 }
-                mesh.tets().push_back(actual_tet);
+                mesh.getListTets().push_back(actual_tet);
             }
         }
     }
@@ -155,30 +155,30 @@ warp_vertices(const float threshold,
               std::vector<float>& vphi)
 {
     assert(threshold>=0 && threshold<=0.5);
-    std::vector<float> warp(mesh.vSize(), FLT_MAX);
-    std::vector<int> warp_nbr(mesh.vSize(), -1);
-    std::vector<Vec3f> d(mesh.vSize(), Vec3f(0,0,0));
+    std::vector<float> warp(mesh.getNumberVertices(), FLT_MAX);
+    std::vector<int> warp_nbr(mesh.getNumberVertices(), -1);
+    std::vector<Vec3f> d(mesh.getNumberVertices(), Vec3f(0,0,0));
     // it's wasteful to iterate through tets just to look at edges; oh well
-    for (size_t t=0; t<mesh.tSize(); ++t) {
+    for (size_t t=0; t<mesh.getNumberTets(); ++t) {
         for (int u=0; u<3; ++u) {
-            int i = mesh.T(t)[u];
+            int i = mesh.getTets(t)[u];
             for (int v=u+1; v<4; ++v) {
-                int j = mesh.T(t)[v];
+                int j = mesh.getTets(t)[v];
                 if ((vphi[i]<0 && vphi[j]>0) || (vphi[i]>0 && vphi[j]<0)) {
                     float alpha = vphi[i]/(vphi[i]-vphi[j]);
                     if (alpha < threshold) { // warp i?
-                        float d2 = alpha*dist2(mesh.V(i), mesh.V(j));
+                        float d2 = alpha*dist2(mesh.getVertices(i), mesh.getVertices(j));
                         if (d2 < warp[i]) {
                             warp[i] = d2;
                             warp_nbr[i] = j;
-                            d[i] = alpha*(mesh.V(j)-mesh.V(i));
+                            d[i] = alpha*(mesh.getVertices(j)-mesh.getVertices(i));
                         }
                     } else if (alpha > 1-threshold) { // warp j?
-                        float d2 = (1-alpha)*dist2(mesh.V(i), mesh.V(j));
+                        float d2 = (1-alpha)*dist2(mesh.getVertices(i), mesh.getVertices(j));
                         if (d2 < warp[j]) {
                             warp[j] = d2;
                             warp_nbr[j] = i;
-                            d[j] = (1-alpha)*(mesh.V(i)-mesh.V(j));
+                            d[j] = (1-alpha)*(mesh.getVertices(i)-mesh.getVertices(j));
                         }
                     }
                 }
@@ -186,8 +186,8 @@ warp_vertices(const float threshold,
         }
     }
     // do the warps (also wasteful to loop over all vertices; oh well)
-    for (size_t i=0; i<mesh.vSize(); ++i) if(warp_nbr[i]>=0) {
-        mesh.V(i) += d[i];
+    for (size_t i=0; i<mesh.getNumberVertices(); ++i) if(warp_nbr[i]>=0) {
+        mesh.getVertices(i) += d[i];
         vphi[i] = 0; 
     }
 }
@@ -205,9 +205,9 @@ cut_edge(int i, int j,
     Vec2i edge(min(i,j), max(i,j));
     std::map<Vec2i,int>::iterator p = cut_map.find(edge);
     if (p == cut_map.end()) { // this edge hasn't been cut yet?
-        int v = (int)mesh.vSize();
+        int v = (int)mesh.getNumberVertices();
         float alpha = vphi[i]/(vphi[i]-vphi[j]);
-        mesh.verts().push_back((1-alpha)*mesh.V(i) + alpha*mesh.V(j));
+        mesh.getListVertices().push_back((1-alpha)*mesh.getVertices(i) + alpha*mesh.getVertices(j));
         vphi.push_back(0);
         cut_map[edge] = v;
         return v;
@@ -227,8 +227,8 @@ trim_spikes(TetMesh& mesh,
     // we have a separate list for the results of trimming tets
     std::vector<Vec4i> new_tets;
     // go through the existing tets to see what we have to trim
-    for (int t=0; t<(int)mesh.tSize(); ++t) {
-        int p, q, r, s; assign(mesh.T(t), p, q, r, s);
+    for (int t=0; t<(int)mesh.getNumberTets(); ++t) {
+        int p, q, r, s; assign(mesh.getTets(t), p, q, r, s);
         if (vphi[p]<=0 && vphi[q]<=0 && vphi[r]<=0 && vphi[s]<=0)
             continue; // this tet doesn't stick out
 
@@ -265,8 +265,8 @@ trim_spikes(TetMesh& mesh,
 
         // now do the actual trimming
         if (vphi[s]==0) { // +++0 entirely outside
-            mesh.T(t)=mesh.tets().back(); // overwrite with last tet
-            mesh.tets().pop_back(); // get rid of the last one
+            mesh.getTets(t)=mesh.getListTets().back(); // overwrite with last tet
+            mesh.getListTets().pop_back(); // get rid of the last one
             --t; // decrement to cancel the next for-loop increment
 
         } else if (vphi[r]>0) { // +++- just one vertex inside, three out
@@ -275,9 +275,9 @@ trim_spikes(TetMesh& mesh,
                 qs = cut_edge(q, s, mesh, vphi, cut_map),
                 rs = cut_edge(r, s, mesh, vphi, cut_map);
             if (flipped)
-                mesh.T(t) = Vec4i(qs, ps, rs, s);
+                mesh.getTets(t) = Vec4i(qs, ps, rs, s);
             else
-                mesh.T(t) = Vec4i(ps, qs, rs, s);
+                mesh.getTets(t) = Vec4i(ps, qs, rs, s);
 
         } else if(vphi[q]<0) { // +--- just one vertex outside, three in
             // Have to tetrahedralize the resulting triangular prism.
@@ -289,11 +289,11 @@ trim_spikes(TetMesh& mesh,
                 pr = cut_edge(p, r, mesh, vphi, cut_map),
                 ps = cut_edge(p, s, mesh, vphi, cut_map);
             if (flipped) {
-                mesh.T(t) = Vec4i(q, pq, r, s);
+                mesh.getTets(t) = Vec4i(q, pq, r, s);
                 new_tets.push_back(Vec4i(r, pq, pr, s));
                 new_tets.push_back(Vec4i(s, pq, pr, ps));
             } else {
-                mesh.T(t)=Vec4i(pq, q, r, s);
+                mesh.getTets(t)=Vec4i(pq, q, r, s);
                 new_tets.push_back(Vec4i(pq, r, pr, s));
                 new_tets.push_back(Vec4i(pq, s, pr, ps));
             }
@@ -304,11 +304,11 @@ trim_spikes(TetMesh& mesh,
                 qr = cut_edge(q, r, mesh, vphi, cut_map),
                 qs = cut_edge(q, s, mesh, vphi, cut_map);
             if (flipped) {
-                mesh.T(t) = Vec4i(qr, pr, r, s);
+                mesh.getTets(t) = Vec4i(qr, pr, r, s);
                 new_tets.push_back(Vec4i(qs, pr, qr, s));
                 new_tets.push_back(Vec4i(ps, pr, qs, s));
             } else {
-                mesh.T(t) = Vec4i(pr, qr, r, s);
+                mesh.getTets(t) = Vec4i(pr, qr, r, s);
                 new_tets.push_back(Vec4i(pr, qs, qr, s));
                 new_tets.push_back(Vec4i(pr, ps, qs, s));
             }
@@ -316,18 +316,18 @@ trim_spikes(TetMesh& mesh,
         } else if (vphi[q]==0 && vphi[r]==0) { // +00- 1 out, 1 in, 2 surface
             int ps = cut_edge(p, s, mesh, vphi, cut_map);
             if (flipped)
-                mesh.T(t) = Vec4i(q, ps, r, s);
+                mesh.getTets(t) = Vec4i(q, ps, r, s);
             else
-                mesh.T(t) = Vec4i(ps, q, r, s);
+                mesh.getTets(t) = Vec4i(ps, q, r, s);
 
         } else if (vphi[q]==0) { // +0-- 1 out, 2 in, 1 surface
             int pr = cut_edge(p, r, mesh, vphi, cut_map),
                 ps = cut_edge(p, s, mesh, vphi, cut_map);
             if (flipped) {
-                mesh.T(t) = Vec4i(q, pr, r, s);
+                mesh.getTets(t) = Vec4i(q, pr, r, s);
                 new_tets.push_back(Vec4i(q, ps, pr, s));
             } else {
-                mesh.T(t) = Vec4i(pr, q, r, s);
+                mesh.getTets(t) = Vec4i(pr, q, r, s);
                 new_tets.push_back(Vec4i(ps, q, pr, s));
             }
 
@@ -335,14 +335,14 @@ trim_spikes(TetMesh& mesh,
             int ps = cut_edge(p, s, mesh, vphi, cut_map),
                 qs = cut_edge(q, s, mesh, vphi, cut_map);
             if (flipped)
-                mesh.T(t) = Vec4i(qs, ps, r, s);
+                mesh.getTets(t) = Vec4i(qs, ps, r, s);
             else
-                mesh.T(t) = Vec4i(ps, qs, r, s);
+                mesh.getTets(t) = Vec4i(ps, qs, r, s);
         }
     }
     // append all the remaining new tets
     for (size_t t=0; t<new_tets.size(); ++t)
-        mesh.tets().push_back(new_tets[t]);
+        mesh.getListTets().push_back(new_tets[t]);
 }
 
 
@@ -352,13 +352,13 @@ remove_exterior_tets(TetMesh& mesh,
                      const std::vector<float> &vphi,
                      const SDF& sdf)
 {
-    for (size_t t=0; t<mesh.tSize(); ) {
-        int i, j, k, l; assign(mesh.T(t), i, j, k, l);
+    for (size_t t=0; t<mesh.getNumberTets(); ) {
+        int i, j, k, l; assign(mesh.getTets(t), i, j, k, l);
         assert(vphi[i]<=0 && vphi[j]<=0 && vphi[k]<=0 && vphi[l]<=0);
         if (vphi[i]==0 && vphi[j]==0 && vphi[k]==0 && vphi[l]==0
-            && sdf((mesh.V(i)+mesh.V(j)+mesh.V(k)+mesh.V(l))/4)>0) {
-            mesh.T(t) = mesh.tets().back();
-            mesh.tets().pop_back();
+            && sdf((mesh.getVertices(i)+mesh.getVertices(j)+mesh.getVertices(k)+mesh.getVertices(l))/4)>0) {
+            mesh.getTets(t) = mesh.getListTets().back();
+            mesh.getListTets().pop_back();
         } else {
             ++t;
         }
@@ -380,7 +380,7 @@ max_dihedral_angle(const TetMesh& mesh)
 {
 	// Measure maximum dihedral angle of tet mesh.
 	float maxAngle = 0.0f;
-	for (size_t t = 0; t < mesh.tSize(); ++t) {
+	for (size_t t = 0; t < mesh.getNumberTets(); ++t) {
         std::vector<float> angles;
         mesh.getTet(t).computeDihedralAngles(angles);
         for (size_t i = 0; i < angles.size(); ++i) {
@@ -421,8 +421,8 @@ make_tet_mesh(TetMesh& mesh,
 
     // Initialize mesh from acute lattice.
     std::vector<float> vphi; // SDF value at each lattice vertex.
-    mesh.verts().resize(0);
-    mesh.tets().resize(0);
+    mesh.getListVertices().resize(0);
+    mesh.getListTets().resize(0);
 
     std::cout<<"  cutting from lattice"<<std::endl;
     cut_lattice(sdf, mesh, vphi);
@@ -550,7 +550,7 @@ make_tet_mesh(TetMesh& mesh,
 
         // DEBUGGING
         // Check for inverted tets
-        for (size_t t = 0; t < mesh.tSize(); ++t)
+        for (size_t t = 0; t < mesh.getNumberTets(); ++t)
         {
             Tet tet = mesh.getTet(t);
             float signedVolume = tet.computeVolume();

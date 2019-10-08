@@ -271,12 +271,12 @@ main(int argc,
     
     // Write out a Matlab file containing the dihedral angles of the mesh.
     std::vector<float> dihedralAngles;
-    dihedralAngles.reserve(mesh.tSize()*6);
-    for (size_t tIdx = 0; tIdx < mesh.tSize(); ++tIdx)
+    dihedralAngles.reserve(mesh.getNumberTets()*6);
+    for (size_t tIdx = 0; tIdx < mesh.getNumberTets(); ++tIdx)
     {
         Tet currTet = mesh.getTet(tIdx);
         std::vector<float> currAngles;
-        currTet.dihedralAngles(currAngles);
+        currTet.computeDihedralAngles(currAngles);
         for (size_t i = 0; i < currAngles.size(); ++i)
         {
             dihedralAngles.push_back(currAngles[i] * 180.0 / M_PI);

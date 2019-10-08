@@ -198,35 +198,35 @@ float Tet::computeMaxEdgeLength() const
 // TetMesh
 //
 
-Tet TetMesh::getTet(int i) const
+Tet TetMesh::getTet(uint64_t i) const
 {
-    const Vec4i& tet = t[i];
-    return Tet(v[tet[0]],
-               v[tet[1]],
-               v[tet[2]],
-               v[tet[3]]);
+    const Vec4i& tet = _tets[i];
+    return Tet(_vertices[tet[0]],
+               _vertices[tet[1]],
+               _vertices[tet[2]],
+               _vertices[tet[3]]);
 }
 
 
 void TetMesh::getAdjacentVertices(int vertex, std::vector<int>& vertices) const
 {
-    if (dirty || incidenceMap.size() == 0)
+    if (_dirty || _incidenceMap.size() == 0)
     {
-        buildIncidenceMap();
+        _buildIncidenceMap();
     }
 
-    assert(incidenceMap.size() == v.size());
-    assert(vertex < static_cast<int>(incidenceMap.size()));
+    assert(_incidenceMap.size() == vertices.size());
+    assert(vertex < static_cast<int>(_incidenceMap.size()));
 
     vertices.clear();
 
-    const std::vector<int>& incidentTets = incidenceMap[vertex];
+    const std::vector<int>& incidentTets = _incidenceMap[vertex];
     for (size_t i = 0; i < incidentTets.size(); ++i)
     {
         for (int u = 0; u < 4; ++u)
         {
             // Add the current vertex if it hasn't been added already.
-            int vIndex = t[incidentTets[i]][u];
+            int vIndex = _tets[incidentTets[i]][u];
             bool alreadyAdded = false;
             for (size_t j = 0; j < vertices.size(); ++j)
             {
@@ -247,17 +247,17 @@ void TetMesh::getAdjacentVertices(int vertex, std::vector<int>& vertices) const
 
 void TetMesh::getIncidentTets(int vertex, std::vector<Tet>& tets) const
 {
-    if (dirty || incidenceMap.size() == 0)
+    if (_dirty || _incidenceMap.size() == 0)
     {
-        buildIncidenceMap();
+        _buildIncidenceMap();
     }
 
-    assert(incidenceMap.size() == v.size());
-    assert(vertex < static_cast<int>(incidenceMap.size()));
+    assert(_incidenceMap.size() == _vertices.size());
+    assert(vertex < static_cast<int>(_incidenceMap.size()));
 
     tets.clear();
 
-    const std::vector<int>& incidentTets = incidenceMap[vertex];
+    const std::vector<int>& incidentTets = _incidenceMap[vertex];
     for (size_t i = 0; i < incidentTets.size(); ++i)
     {
         tets.push_back(getTet(incidentTets[i]));
@@ -268,55 +268,55 @@ void TetMesh::getIncidentTets(int vertex, std::vector<Tet>& tets) const
 void TetMesh::getIncidentTetIndices(int vertex, 
                                     std::vector<int>& tetIndices) const
 {
-    if (dirty || incidenceMap.size() == 0)
+    if (_dirty || _incidenceMap.size() == 0)
     {
-        buildIncidenceMap();
+        _buildIncidenceMap();
     }
 
-    assert(incidenceMap.size() == v.size());
-    assert(vertex < static_cast<int>(incidenceMap.size()));
+    assert(_incidenceMap.size() == _vertices.size());
+    assert(vertex < static_cast<int>(_incidenceMap.size()));
 
-    tetIndices = incidenceMap[vertex];
+    tetIndices = _incidenceMap[vertex];
 }
 
 
 void TetMesh::compactMesh()
 {
     // Go through our tetrahedra, relabeling vertices.
-    std::vector<int> remap(v.size(), -1);
+    std::vector<int> remap(_vertices.size(), -1);
     int nv = 0;
-    for (size_t tet = 0; tet < t.size(); ++tet)
+    for (size_t tet = 0; tet < _tets.size(); ++tet)
     {
         for (int u = 0; u < 4; ++u)
         {
-            int i = t[tet][u];
+            int i = _tets[tet][u];
             if (remap[i] == -1)
             {
                 remap[i] = nv;
                 ++nv;
             }
-            t[tet][u] = remap[i];
+            _tets[tet][u] = remap[i];
         }
     }
 
     // Now go through the vertices, remapping them using their new labels.
     // Any vertices not found in tetrahedra will not be included.
     std::vector<Vec3f> vnew(nv);
-    for (size_t i = 0; i < v.size(); ++i)
+    for (size_t i = 0; i < _vertices.size(); ++i)
     {
-        if (remap[i] >= 0) vnew[remap[i]] = v[i];
+        if (remap[i] >= 0) vnew[remap[i]] = _vertices[i];
     }
-    v.swap(vnew);
+    _vertices.swap(vnew);
 
-    dirty = true;
+    _dirty = true;
 }
 
 
-void TetMesh::getBoundary(std::vector<int>& boundary_verts,
-                          std::vector<Vec3i>& boundary_tris) const
+void TetMesh::getBoundary(std::vector<int>& boundaryVerts,
+                          std::vector<Vec3i>& boundaryTris) const
 {
-    boundary_verts.clear();
-    boundary_tris.clear();
+    boundaryVerts.clear();
+    boundaryTris.clear();
 
     // Go through every triangle of every tetrahedron.
     // If the same triangle has already been found
@@ -325,13 +325,13 @@ void TetMesh::getBoundary(std::vector<int>& boundary_verts,
     Vec3i tet_tris[4];
     Vec3i permuted_tris[3];
 
-    for (size_t tet = 0; tet < t.size(); ++tet)
+    for (size_t tet = 0; tet < _tets.size(); ++tet)
     {
         // Consider each triangle
-        tet_tris[0] = Vec3i(t[tet][0], t[tet][1], t[tet][2]);
-        tet_tris[1] = Vec3i(t[tet][0], t[tet][2], t[tet][3]);
-		tet_tris[2] = Vec3i(t[tet][0], t[tet][3], t[tet][1]);
-        tet_tris[3] = Vec3i(t[tet][1], t[tet][3], t[tet][2]);
+        tet_tris[0] = Vec3i(_tets[tet][0], _tets[tet][1], _tets[tet][2]);
+        tet_tris[1] = Vec3i(_tets[tet][0], _tets[tet][2], _tets[tet][3]);
+        tet_tris[2] = Vec3i(_tets[tet][0], _tets[tet][3], _tets[tet][1]);
+        tet_tris[3] = Vec3i(_tets[tet][1], _tets[tet][3], _tets[tet][2]);
 	
         // If the winding is wrong on the boundary, try this instead
         //tet_tris[0] = Vec3i t1(t[tet][0], t[tet][2], t[tet][1]);
@@ -374,7 +374,7 @@ void TetMesh::getBoundary(std::vector<int>& boundary_verts,
     for (std::set<Vec3i>::iterator itr = boundary_set.begin();
          itr != boundary_set.end(); ++itr)
     {
-        boundary_tris.push_back(*itr);
+        boundaryTris.push_back(*itr);
         
         vertex_set.insert((*itr)[0]);
         vertex_set.insert((*itr)[1]);
@@ -383,29 +383,29 @@ void TetMesh::getBoundary(std::vector<int>& boundary_verts,
     for (std::set<int>::iterator itr = vertex_set.begin();
             itr != vertex_set.end(); ++itr)
     {
-        boundary_verts.push_back(*itr);
+        boundaryVerts.push_back(*itr);
     }
 }
 
 
-void TetMesh::getBoundary(std::vector<Vec3f>& boundary_verts,
-                          std::vector<Vec3i>& boundary_tris) const
+void TetMesh::getBoundary(std::vector<Vec3f>& boundaryVerts,
+                          std::vector<Vec3i>& boundaryTris) const
 {
-    boundary_verts.clear();
-    boundary_tris.clear();
+    boundaryVerts.clear();
+    boundaryTris.clear();
 
     std::vector<int> vertIndices;
     std::vector<Vec3i> triIndices;
     getBoundary(vertIndices, triIndices);
 
-    boundary_verts.reserve(vertIndices.size());
-    boundary_tris.reserve(triIndices.size());
+    boundaryVerts.reserve(vertIndices.size());
+    boundaryTris.reserve(triIndices.size());
 
     std::map<int, int> meshToBoundaryMap;
 
     for (size_t vIndex = 0; vIndex < vertIndices.size(); ++vIndex)
     {
-        boundary_verts.push_back(v[vertIndices[vIndex]]);
+        boundaryVerts.push_back(_vertices[vertIndices[vIndex]]);
         meshToBoundaryMap[vertIndices[vIndex]] = vIndex;
     }
     for (size_t tIndex = 0; tIndex < triIndices.size(); ++tIndex)
@@ -417,7 +417,7 @@ void TetMesh::getBoundary(std::vector<Vec3f>& boundary_verts,
                    meshToBoundaryMap.end());
             tri[i] = meshToBoundaryMap[triIndices[tIndex][i]];
         }
-        boundary_tris.push_back(tri);
+        boundaryTris.push_back(tri);
     }
 }
 
@@ -429,10 +429,10 @@ bool TetMesh::writeNodeFile(const char* filename) const
     if (!out) return false;
 
     fprintf(out, "# Node count, 3 dim, no attribute, no boundary marker\n");
-    fprintf(out, "%d 3 0 0\n", (int)v.size());
-    for (size_t i=0; i<v.size(); ++i)
+    fprintf(out, "%d 3 0 0\n", (int)_vertices.size());
+    for (size_t i=0; i<_vertices.size(); ++i)
         fprintf(out, "%d %.7g %.7g %.7g\n",
-                i, v[i][0], v[i][1], v[i][2]);
+                i, _vertices[i][0], _vertices[i][1], _vertices[i][2]);
     std::fclose(out);
     return true;
 }
@@ -444,10 +444,10 @@ bool TetMesh::writeEleFile(const char* filename) const
     FILE *out=std::fopen(fileName.c_str(), "w");
     if (!out) return false;
 
-    fprintf(out, "%d 4 0\n", (int)t.size());
-    for (size_t tet=0; tet<t.size(); ++tet)
+    fprintf(out, "%d 4 0\n", (int)_tets.size());
+    for (size_t tet=0; tet<_tets.size(); ++tet)
         fprintf(out, "%zu %d %d %d %d\n",
-                tet, t[tet][0], t[tet][1], t[tet][2], t[tet][3]);
+                tet, _tets[tet][0], _tets[tet][1], _tets[tet][2], _tets[tet][3]);
     std::fclose(out);
     return true;
 }
@@ -462,10 +462,10 @@ bool TetMesh::writeFaceFile(const char* filename) const
     FILE *out=std::fopen(fileName.c_str(), "w");
     if (!out) return false;
 
-    fprintf(out, "%d 1\n", (int)t.size());
-    for (size_t tet=0; tet<t.size(); ++tet)
+    fprintf(out, "%d 1\n", (int)_tets.size());
+    for (size_t tet=0; tet<_tets.size(); ++tet)
         fprintf(out, "%zu %d %d %d %d\n",
-                tet, t[tet][0], t[tet][1], t[tet][2], t[tet][3]);
+                tet, _tets[tet][0], _tets[tet][1], _tets[tet][2], _tets[tet][3]);
     std::fclose(out);
     return true;
 }
@@ -485,16 +485,16 @@ bool TetMesh::writeToGMshFile(const char* filename) const
     fprintf(out, "$EndMeshFormat\n");
 
     fprintf(out, "$Nodes\n");
-    fprintf(out, "%d\n", (int)v.size());
-    for (size_t i=0; i<v.size(); ++i)
-        fprintf(out, "%zu %.7g %.7g %.7g\n",i + 1, v[i][0], v[i][1], v[i][2]);
+    fprintf(out, "%d\n", (int)_vertices.size());
+    for (size_t i=0; i<_vertices.size(); ++i)
+        fprintf(out, "%zu %.7g %.7g %.7g\n",i + 1, _vertices[i][0], _vertices[i][1], _vertices[i][2]);
     fprintf(out, "$EndNodes\n");
 
     fprintf(out, "$Elements\n");
-     fprintf(out, "%d\n", (int)t.size());
-    for (size_t tet=0; tet<t.size(); ++tet)
+     fprintf(out, "%d\n", (int)_tets.size());
+    for (size_t tet=0; tet<_tets.size(); ++tet)
         fprintf(out, "%zu 4 2 0 1 %d %d %d %d\n",
-                tet + 1, t[tet][0] + 1, t[tet][1] + 1, t[tet][2] + 1, t[tet][3] + 1);
+                tet + 1, _tets[tet][0] + 1, _tets[tet][1] + 1, _tets[tet][2] + 1, _tets[tet][3] + 1);
     fprintf(out, "$EndElements\n");
     std::fclose(out);
     return true;
@@ -504,13 +504,13 @@ bool TetMesh::writeToFile(const char* filename) const
 {
     FILE *out=std::fopen(filename, "w");
     if (!out) return false;
-    fprintf(out, "tet %d %d\n", (int)v.size(), (int)t.size());
-    for (size_t i=0; i<v.size(); ++i)
+    fprintf(out, "tet %d %d\n", (int)_vertices.size(), (int)_tets.size());
+    for (size_t i=0; i<_vertices.size(); ++i)
         fprintf(out, "%.7g %.7g %.7g\n",
-                v[i][0], v[i][1], v[i][2]);
-    for (size_t tet=0; tet<t.size(); ++tet)
+                _vertices[i][0], _vertices[i][1], _vertices[i][2]);
+    for (size_t tet=0; tet<_tets.size(); ++tet)
         fprintf(out, "%d %d %d %d\n",
-                t[tet][0], t[tet][1], t[tet][2], t[tet][3]);
+                _tets[tet][0], _tets[tet][1], _tets[tet][2], _tets[tet][3]);
     std::fclose(out);
     return true;
 }
@@ -530,8 +530,8 @@ bool TetMesh::writeInfoToFile(const char* filename) const
     
     // Accumulate dihedral angles
     std::vector<float> dihedralAngles;
-    dihedralAngles.reserve(t.size()*6);
-    for (size_t tIdx = 0; tIdx < t.size(); ++tIdx)
+    dihedralAngles.reserve(_tets.size()*6);
+    for (size_t tIdx = 0; tIdx < _tets.size(); ++tIdx)
     {
         Tet currTet = getTet(tIdx);
         std::vector<float> currAngles;
@@ -569,7 +569,7 @@ bool TetMesh::writeInfoToFile(const char* filename) const
     // Compute minimum and maximum volume.
     float minVolume = FLT_MAX;
     float maxVolume = -FLT_MAX;
-    for (size_t tIdx = 0; tIdx < t.size(); ++tIdx)
+    for (size_t tIdx = 0; tIdx < _tets.size(); ++tIdx)
     {
         Tet currTet = getTet(tIdx);
         float currVolume = currTet.computeVolume();
@@ -588,8 +588,8 @@ bool TetMesh::writeInfoToFile(const char* filename) const
     
     // Accumulate aspect ratio
     std::vector<float> aspectRatios;
-    aspectRatios.reserve(t.size());
-    for (size_t tIdx = 0; tIdx < t.size(); ++tIdx)
+    aspectRatios.reserve(_tets.size());
+    for (size_t tIdx = 0; tIdx < _tets.size(); ++tIdx)
     {
         Tet currTet = getTet(tIdx);
         aspectRatios.push_back(currTet.computeAspectRatio());    
@@ -621,8 +621,8 @@ bool TetMesh::writeInfoToFile(const char* filename) const
 
     out << "Tetrahedral Mesh Quality Information" << std::endl << std::endl;
 
-    out << "Mesh vertices: " << v.size() << std::endl;
-    out << "Mesh tetrahedra: " << t.size() << std::endl;
+    out << "Mesh vertices: " << _vertices.size() << std::endl;
+    out << "Mesh tetrahedra: " << _tets.size() << std::endl;
     out << std::endl;
 
     out << std::setw(24) << std::left << "Smallest volume:" << 
@@ -724,26 +724,26 @@ bool TetMesh::writeInfoToFile(const char* filename) const
 }
 
 
-void TetMesh::buildIncidenceMap() const
+void TetMesh::_buildIncidenceMap() const
 {
-    incidenceMap.clear();
-    incidenceMap.resize(v.size());
+    _incidenceMap.clear();
+    _incidenceMap.resize(_vertices.size());
 
     // For each vertex, find and store all the tetrahedra that contain it.
-    for (size_t vIndex = 0; vIndex < v.size(); ++vIndex)
+    for (size_t vIndex = 0; vIndex < _vertices.size(); ++vIndex)
     {
-        for (size_t tIndex = 0; tIndex < t.size(); ++tIndex)
+        for (size_t tIndex = 0; tIndex < _tets.size(); ++tIndex)
         {
             for (int i = 0; i < 4; ++i)
             {
-                if (t[tIndex][i] == static_cast<int>(vIndex))
+                if (_tets[tIndex][i] == static_cast<int>(vIndex))
                 {
-                    incidenceMap[vIndex].push_back(tIndex);
+                    _incidenceMap[vIndex].push_back(tIndex);
                 }
             }
         }
     }
 
-    dirty = false;
+    _dirty = false;
 }
 
